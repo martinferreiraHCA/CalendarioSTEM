@@ -191,6 +191,35 @@ td.today .mnum{
 }
 .mmore{font-size:11px;margin-top:4px;letter-spacing:.1em;opacity:.55;}
 
+/* ---------- vista día: carrusel de tarjetas ---------- */
+main.dayview{overflow:hidden;}
+.carousel{position:relative;height:100%;overflow:hidden;touch-action:pan-y;cursor:grab;}
+.carousel:active{cursor:grabbing;}
+.track{display:flex;height:100%;will-change:transform;}
+.card{
+  flex:0 0 100%;min-width:0;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:20px var(--pad) 56px var(--pad);
+  border-right:var(--hair) solid var(--rule);
+}
+.card .c-status{
+  border:2px solid currentColor;padding:3px 12px;
+  font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  margin-bottom:20px;
+}
+.card .c-time{font-size:clamp(26px,6vw,46px);font-weight:700;letter-spacing:-.02em;}
+.card .c-title{
+  font-size:clamp(22px,5vw,38px);font-weight:400;line-height:1.15;
+  margin-top:14px;max-width:26ch;overflow-wrap:break-word;
+}
+.card .c-meta{margin-top:14px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;}
+.card .c-hint{margin-top:18px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.45;}
+.card.now{background:var(--ink);color:var(--paper);}
+.card.done{opacity:.45;}
+.dots{position:absolute;left:0;right:0;bottom:16px;display:flex;justify-content:center;}
+.dot{width:10px;height:10px;border:2px solid var(--ink);background:var(--paper);margin:0 5px;}
+.dot.on{background:var(--ink);}
+
 /* ---------- pie ---------- */
 footer{
   flex:0 0 auto;
@@ -363,6 +392,7 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
       <div class="tabs">
         <button id="tabWeek" class="on">Semana</button>
         <button id="tabMonth">Mes</button>
+        <button id="tabDay">Actividades del día</button>
       </div>
       <button class="book" id="openBook">+ Reservar</button>
     </div>
@@ -532,6 +562,10 @@ function apiCreate(payload, cb){
    5. CARGA Y DIBUJO
    ============================================================ */
 function visibleRange(){
+  if (state.mode === 'day'){
+    var s = startOfDay(state.anchor);
+    return { from: s, to: s };
+  }
   if (state.mode === 'week'){
     var a = mondayOf(state.anchor);
     return { from: a, to: addDays(a, 6) };
@@ -587,11 +621,15 @@ function eventsOfDay(d){
 }
 
 function render(){
+  if (state.mode === 'day' && dayC.dragging) return; // no repintar a mitad de un swipe
   $('spaceName').textContent = CONFIG.SPACE_NAME;
   $('tabWeek').className = state.mode === 'week' ? 'on' : '';
   $('tabMonth').className = state.mode === 'month' ? 'on' : '';
-  $('view').className = state.mode === 'month' ? 'month' : '';
-  if (state.mode === 'week') renderWeek(); else renderMonth();
+  $('tabDay').className = state.mode === 'day' ? 'on' : '';
+  $('view').className = state.mode === 'month' ? 'month' : (state.mode === 'day' ? 'dayview' : '');
+  if (state.mode === 'week') renderWeek();
+  else if (state.mode === 'month') renderMonth();
+  else renderDay();
   setStatus(state.offline ? 'Sin conexión con el calendario' : '');
 }
 
@@ -679,6 +717,159 @@ function renderMonth(){
   $('view').innerHTML = html + '</tbody></table>';
 }
 
+/* ---------- vista día: carrusel ---------- */
+var dayC = { idx: 0, dragging: false, slideFrom: 0, speed: 0 };
+
+function renderDay(){
+  var d = startOfDay(state.anchor), now = new Date();
+  $('range').innerHTML = '<b>' + DOW_LONG[d.getDay()] + '</b> ' + d.getDate() + ' ' +
+    MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+
+  var evs = eventsOfDay(d);
+  var n = Math.max(evs.length, 1);
+  if (dayC.idx === 'last') dayC.idx = n - 1;
+  if (dayC.idx > n - 1) dayC.idx = n - 1;
+  if (dayC.idx < 0) dayC.idx = 0;
+
+  var html = '<div class="carousel" id="car"><div class="track" id="track">';
+  if (!evs.length){
+    html += '<div class="card"><div class="c-time">Libre</div>' +
+            '<div class="c-title">Sin actividades este día</div>' +
+            '<div class="c-hint">Deslizá para ver otro día</div></div>';
+  } else {
+    for (var i = 0; i < evs.length; i++){
+      var ev = evs[i];
+      var isNow = ev.start <= now && ev.end > now;
+      var isDone = ev.end <= now;
+      html += '<div class="card' + (isNow ? ' now' : (isDone ? ' done' : '')) + '">';
+      html += '<div class="c-status">' + (isNow ? 'En curso' : (isDone ? 'Terminada' : 'Próxima')) + '</div>';
+      html += '<div class="c-time num">' + (ev.allDay ? 'Todo el día' : hhmm(ev.start) + ' &ndash; ' + hhmm(ev.end)) + '</div>';
+      html += '<div class="c-title">' + esc(ev.title) + '</div>';
+      var meta = [];
+      if (ev.who) meta.push(esc(ev.who));
+      if (ev.location) meta.push(esc(ev.location));
+      if (meta.length) html += '<div class="c-meta">' + meta.join(' &middot; ') + '</div>';
+      html += '<div class="c-hint">' + (i + 1) + ' de ' + evs.length + ' &middot; Deslizá</div>';
+      html += '</div>';
+    }
+  }
+  html += '</div><div class="dots">';
+  for (var k = 0; k < n; k++) html += '<span class="dot' + (k === dayC.idx ? ' on' : '') + '"></span>';
+  html += '</div></div>';
+  $('view').innerHTML = html;
+
+  bindCarousel();
+
+  var track = $('track'), W = $('car').clientWidth;
+  if (dayC.slideFrom){
+    // Venimos de otro día: la tarjeta entra desde el lado del swipe.
+    var from = -dayC.idx * W + dayC.slideFrom * W;
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(' + from + 'px)';
+    var ms = slideMs(W, dayC.speed);
+    dayC.slideFrom = 0;
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        track.style.transition = 'transform ' + ms + 'ms cubic-bezier(.2,.7,.3,1)';
+        track.style.transform = 'translateX(' + (-dayC.idx * W) + 'px)';
+      });
+    });
+  } else {
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(' + (-dayC.idx * W) + 'px)';
+  }
+}
+
+// Duración de la animación según la velocidad del gesto (px/ms):
+// swipe rápido = animación corta; suelto lento = animación tranquila.
+function slideMs(dist, speed){
+  return Math.max(130, Math.min(450, dist / Math.max(speed, 0.6)));
+}
+
+function changeDay(dir, speed){
+  state.anchor = addDays(state.anchor, dir);
+  dayC.idx = dir > 0 ? 0 : 'last';
+  dayC.slideFrom = dir;
+  dayC.speed = speed || 0;
+  render();
+  load();
+}
+
+function animateToCard(target, speed){
+  var track = $('track'), car = $('car');
+  if (!track) return;
+  var W = car.clientWidth;
+  var dist = Math.abs(target * W + carTranslate(track));
+  dayC.idx = target;
+  track.style.transition = 'transform ' + slideMs(Math.max(dist, W * 0.2), speed) + 'ms cubic-bezier(.2,.7,.3,1)';
+  track.style.transform = 'translateX(' + (-target * W) + 'px)';
+  var dots = $('view').querySelectorAll('.dot');
+  for (var i = 0; i < dots.length; i++) dots[i].className = i === target ? 'dot on' : 'dot';
+}
+
+function carTranslate(track){
+  var m = /-?[\d.]+/.exec(track.style.transform || '');
+  return m ? parseFloat(m[0]) : 0;
+}
+
+function bindCarousel(){
+  var car = $('car'), track = $('track');
+  if (!car) return;
+  var startX = 0, curX = 0, lastX = 0, lastT = 0, vel = 0, active = false;
+
+  function down(x, t){
+    active = true; dayC.dragging = true;
+    startX = curX = lastX = x; lastT = t; vel = 0;
+    track.style.transition = 'none';
+  }
+  function move(x, t){
+    if (!active) return;
+    curX = x;
+    var dt = t - lastT;
+    if (dt > 0){
+      // velocidad suavizada en px/ms
+      vel = 0.75 * vel + 0.25 * ((x - lastX) / dt);
+      lastX = x; lastT = t;
+    }
+    track.style.transform = 'translateX(' + (-dayC.idx * car.clientWidth + (curX - startX)) + 'px)';
+  }
+  function up(){
+    if (!active) return;
+    active = false; dayC.dragging = false;
+    var W = car.clientWidth;
+    var dx = curX - startX;
+    // Proyección por inercia: cuanto más rápido el swipe, más lejos llega.
+    var proj = dx + vel * 260;
+    var delta = Math.round(-proj / W);
+    // Umbral mínimo para pasar de tarjeta aunque el gesto sea corto o lento.
+    var thresh = Math.min(W * 0.2, 120);
+    if (delta === 0 && Math.abs(proj) > thresh) delta = proj < 0 ? 1 : -1;
+
+    var evs = eventsOfDay(startOfDay(state.anchor));
+    var n = Math.max(evs.length, 1);
+    var speed = Math.abs(vel);
+    var target = dayC.idx + delta;
+    if (target < 0){ changeDay(-1, speed); return; }
+    if (target > n - 1){ changeDay(1, speed); return; }
+    animateToCard(target, speed);
+  }
+
+  if (window.PointerEvent){
+    car.addEventListener('pointerdown', function(e){
+      car.setPointerCapture(e.pointerId);
+      down(e.clientX, e.timeStamp);
+    });
+    car.addEventListener('pointermove', function(e){ move(e.clientX, e.timeStamp); });
+    car.addEventListener('pointerup', up);
+    car.addEventListener('pointercancel', up);
+  } else {
+    car.addEventListener('touchstart', function(e){ down(e.touches[0].clientX, e.timeStamp); }, {passive:true});
+    car.addEventListener('touchmove', function(e){ move(e.touches[0].clientX, e.timeStamp); }, {passive:true});
+    car.addEventListener('touchend', up);
+    car.addEventListener('touchcancel', up);
+  }
+}
+
 function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -687,6 +878,7 @@ function esc(s){
    6. NAVEGACIÓN
    ============================================================ */
 function go(delta){
+  if (state.mode === 'day'){ changeDay(delta, 0); return; }
   state.anchor = state.mode === 'week' ? addDays(state.anchor, 7 * delta) : addMonths(state.anchor, delta);
   render();
   load();
@@ -699,6 +891,7 @@ $('next').onclick = function(){ touch(); go(1); };
 $('today').onclick = function(){ touch(); goToday(); };
 $('tabWeek').onclick = function(){ touch(); setMode('week'); };
 $('tabMonth').onclick = function(){ touch(); setMode('month'); };
+$('tabDay').onclick = function(){ touch(); dayC.idx = 0; setMode('day'); };
 
 /* ============================================================
    7. FORMULARIO DE RESERVA
