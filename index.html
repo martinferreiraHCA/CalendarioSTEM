@@ -16,12 +16,13 @@
   --paper:#fff;
   --rule:#000;
   --hair:1px;
-  --pad:14px;
-  --fs-base:17px;
+  --pad:clamp(10px,2vw,16px);
+  --fs-base:clamp(15px,1.6vw,17px);
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;height:100%;}
+@supports (height:100dvh){ html,body,#app{height:100dvh;} }
 body{
   background:var(--paper);
   color:var(--ink);
@@ -57,7 +58,7 @@ header{
 }
 .clock{
   flex:0 0 auto;
-  font-size:40px;
+  font-size:clamp(26px,4.5vw,40px);
   font-weight:700;
   letter-spacing:-.02em;
   line-height:.95;
@@ -72,7 +73,7 @@ header{
   margin-top:4px;
 }
 
-.bar{display:flex;align-items:center;margin-top:9px;}
+.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 0;margin-top:9px;}
 .range{
   flex:1 1 auto;
   font-size:19px;
@@ -98,6 +99,7 @@ button{
   letter-spacing:.06em;
   text-transform:uppercase;
   -webkit-appearance:none;appearance:none;
+  touch-action:manipulation;
 }
 button:active{background:var(--ink);color:var(--paper);}
 button:focus{outline:2px solid var(--ink);outline-offset:2px;}
@@ -109,6 +111,7 @@ button[disabled]{opacity:.28;}
 .nav{flex:0 0 auto;display:flex;margin-right:8px;}
 .nav button{width:52px;padding:0;border-right-width:0;font-size:22px;line-height:38px;}
 .nav button:last-child{border-right-width:2px;}
+.nav #today{width:auto;padding:0 12px;font-size:15px;}
 .book{flex:0 0 auto;font-weight:700;background:var(--ink);color:var(--paper);}
 .book:active{background:var(--paper);color:var(--ink);}
 
@@ -188,7 +191,7 @@ td.today .mnum{
 footer{
   flex:0 0 auto;
   border-top:var(--hair) solid var(--rule);
-  padding:6px var(--pad);
+  padding:6px var(--pad) calc(6px + env(safe-area-inset-bottom,0px)) var(--pad);
   display:flex;
   font-size:11px;
   letter-spacing:.13em;
@@ -199,6 +202,12 @@ footer .r{flex:0 0 auto;}
 footer.warn{background:var(--ink);color:var(--paper);}
 
 /* ---------- panel de reserva ---------- */
+#shade{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,.45);
+  display:none;z-index:19;
+}
+#shade.on{display:block;}
 #sheet{
   position:fixed;top:0;left:0;right:0;bottom:0;
   background:var(--paper);
@@ -207,6 +216,17 @@ footer.warn{background:var(--ink);color:var(--paper);}
   z-index:20;
 }
 #sheet.open{display:flex;}
+/* En pantallas amplias, el panel pasa a ser un modal centrado. */
+@media (min-width:760px) and (min-height:560px){
+  #sheet{
+    top:50%;left:50%;right:auto;bottom:auto;
+    transform:translate(-50%,-50%);
+    width:min(600px,92vw);
+    max-height:min(90vh,760px);
+    border:3px solid var(--ink);
+    box-shadow:10px 10px 0 var(--ink);
+  }
+}
 .sh-top{
   flex:0 0 auto;display:flex;align-items:center;
   border-bottom:3px solid var(--rule);padding:10px var(--pad);
@@ -252,15 +272,71 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
 .busy{position:fixed;top:0;left:0;right:0;height:3px;background:var(--ink);display:none;z-index:30;}
 .busy.on{display:block;}
 
-@media (max-width:640px){
-  :root{--fs-base:16px;--pad:10px;}
-  .clock{font-size:30px;}
-  .space-name{letter-spacing:.14em;font-size:13px;}
-  .day .gutter{flex-basis:72px;}
-  .ev .time{flex-basis:92px;font-size:15px;}
-  .ev .title{font-size:17px;}
+/* ---------- responsive ---------- */
+
+/* Pantallas grandes (TV / monitor de kiosco) */
+@media (min-width:1200px){
+  :root{--fs-base:18px;}
+  .day{min-height:84px;}
+  table.month td{height:110px;}
+  .ev .title{font-size:21px;}
+}
+
+/* Tablet angosta / teléfono grande: la fila de controles se parte en dos */
+@media (max-width:720px){
+  .range{flex:1 1 100%;order:2;}
+  .nav,.tabs{order:1;}
+  .book{order:1;margin-left:auto;}
   .tabs button{min-width:76px;}
 }
+
+/* Teléfono */
+@media (max-width:640px){
+  .space-name{letter-spacing:.14em;font-size:13px;}
+  .day .gutter{flex-basis:64px;padding-left:8px;padding-right:8px;}
+  .day .dnum{font-size:26px;}
+  .ev{padding-left:10px;padding-right:10px;}
+  .ev .time{flex-basis:88px;font-size:15px;}
+  .ev .title{font-size:17px;}
+  table.month td{height:64px;padding:3px 3px 4px 3px;}
+  .mnum{font-size:14px;}
+  /* Los eventos del mes se vuelven marcas cuadradas: el detalle vive en Semana */
+  .mev{
+    display:inline-block;width:8px;height:8px;margin:5px 4px 0 0;
+    padding:0;border-left:0;background:var(--ink);
+    overflow:hidden;font-size:0;line-height:0;vertical-align:top;
+  }
+  .mmore{display:inline-block;margin:3px 0 0 0;font-size:10px;}
+  footer{font-size:10px;letter-spacing:.08em;}
+}
+
+/* Teléfono chico: horario y título del evento en columna */
+@media (max-width:440px){
+  .top{flex-wrap:wrap;}
+  .space-name{flex:1 1 100%;padding-bottom:2px;}
+  .clock{margin-left:auto;display:flex;align-items:baseline;gap:8px;}
+  .clock .dow{margin-top:0;}
+  .nav button{width:44px;}
+  .nav #today{width:auto;padding:0 10px;font-size:14px;}
+  .tabs button{min-width:0;padding:0 10px;}
+  .book{padding:0 10px;}
+  .ev{display:block;}
+  .ev .time{font-size:14px;}
+  .ev .time small{display:inline;margin-left:6px;}
+  .ev .title{font-size:16px;margin-top:2px;}
+  .row{display:block;}
+  .row>div{padding-right:0;}
+}
+
+/* Poca altura (teléfono apaisado): compactar cabecera */
+@media (max-height:480px){
+  header{padding-top:6px;padding-bottom:5px;}
+  .clock{font-size:24px;}
+  .clock .dow{display:none;}
+  .bar{margin-top:5px;}
+  .day{min-height:56px;}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
 </style>
 </head>
@@ -296,6 +372,8 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
     <div class="r num" id="updated"></div>
   </footer>
 </div>
+
+<div id="shade"></div>
 
 <div id="sheet">
   <div class="sh-top">
@@ -665,10 +743,12 @@ function openBook(){
   $('fPin').value = '';
   $('pinField').style.display = CONFIG.PIN ? 'block' : 'none';
   showMsg('');
+  $('shade').className = 'on';
   $('sheet').className = 'open';
   $('fTitle').focus();
 }
-function closeBook(){ $('sheet').className = ''; touch(); }
+function closeBook(){ $('sheet').className = ''; $('shade').className = ''; touch(); }
+$('shade').onclick = closeBook;
 
 function showMsg(txt, bad){
   var m = $('msg');
@@ -679,6 +759,9 @@ function showMsg(txt, bad){
 
 $('openBook').onclick = function(){ touch(); openBook(); };
 $('closeBook').onclick = closeBook;
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeBook();
+});
 
 $('saveBook').onclick = function(){
   touch();
