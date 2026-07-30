@@ -427,24 +427,37 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
       <div class="chips" id="dayChips"></div>
     </div>
     <div class="field">
+      <label>Tipo de actividad</label>
+      <div class="chips">
+        <button class="chip on" id="typeOnce" type="button">Puntual</button>
+        <button class="chip" id="typeClass" type="button">Clase (todas las semanas hasta fin de año)</button>
+      </div>
+    </div>
+    <div class="field">
       <label>Horario</label>
       <div class="chips" id="modeChips">
         <button class="chip on" id="modeManual" type="button">Manual</button>
-        <button class="chip" id="modeSec" type="button">Módulos de secundaria</button>
+        <button class="chip" id="modeSec" type="button">Módulos institucionales</button>
       </div>
     </div>
-    <div class="row">
+    <div class="row" id="manualRow">
       <div class="field">
         <label for="fStart">Empieza</label>
         <input type="time" id="fStart" step="300">
       </div>
-      <div class="field" id="durField">
+      <div class="field">
         <label for="fDur">Dura</label>
         <select id="fDur"></select>
       </div>
-      <div class="field" id="modsField" style="display:none">
-        <label for="fMods">Módulos</label>
-        <select id="fMods"></select>
+    </div>
+    <div class="row" id="modsRow" style="display:none">
+      <div class="field">
+        <label for="fFrom">Desde el módulo</label>
+        <select id="fFrom"></select>
+      </div>
+      <div class="field">
+        <label for="fTo">Hasta el módulo</label>
+        <select id="fTo"></select>
       </div>
     </div>
     <div class="field">
@@ -481,9 +494,21 @@ var CONFIG = {
   SLOT_MINUTES: 30,       // redondeo de la hora sugerida al abrir el formulario
   DURATIONS: [30, 60, 90, 120, 180, 240],
 
-  // Modo "módulos de secundaria": duración = cantidad × minutos por módulo.
-  MODULE_MINUTES: 45,
-  MAX_MODULES: 8,
+  // Horarios institucionales de secundaria: [inicio, fin] de cada módulo.
+  // El modo "Módulos" del formulario usa esta tabla (los recreos quedan
+  // dentro del rango si la actividad abarca varios módulos).
+  MODULES: [
+    ['07:45','08:25'],   // 1.º
+    ['08:25','09:05'],   // 2.º
+    ['09:10','09:50'],   // 3.º  (recreo 9:05–9:10)
+    ['09:50','10:30'],   // 4.º
+    ['10:35','11:15'],   // 5.º  (recreo 10:30–10:35)
+    ['11:15','11:55'],   // 6.º
+    ['12:15','12:55'],   // 7.º  (recreo largo 11:55–12:15)
+    ['12:55','13:35'],   // 8.º
+    ['13:40','14:20'],   // 9.º  (recreo 13:35–13:40)
+    ['14:20','15:00']    // 10.º
+  ],
   BOOK_DAYS_AHEAD: 21,    // días que ofrece el selector de día
 
   REFRESH_MS: 180000,     // recarga de datos: 3 min
@@ -526,7 +551,7 @@ var state = {
   lastUpdate: null,
   lastTouch: Date.now(),
   offline: false,
-  form: { day: startOfDay(new Date()), timeMode: 'manual' }
+  form: { day: startOfDay(new Date()), timeMode: 'manual', type: 'once' }
 };
 
 function $(id){ return document.getElementById(id); }
@@ -910,23 +935,51 @@ function buildTimeOptions(){
   $('fDur').innerHTML = ds;
 
   var ms = '';
-  for (var n = 1; n <= CONFIG.MAX_MODULES; n++){
-    var lbl = n + (n === 1 ? ' módulo' : ' módulos') + ' (' + fmtMins(n * CONFIG.MODULE_MINUTES) + ')';
-    ms += '<option value="' + n + '">' + lbl + '</option>';
+  for (var n = 0; n < CONFIG.MODULES.length; n++){
+    var mod = CONFIG.MODULES[n];
+    ms += '<option value="' + n + '">' + (n + 1) + '.º (' + mod[0] + '&ndash;' + mod[1] + ')</option>';
   }
-  $('fMods').innerHTML = ms;
+  $('fFrom').innerHTML = ms;
+  $('fTo').innerHTML = ms;
 }
+
+// "Hasta" nunca puede quedar antes que "Desde".
+$('fFrom').onchange = function(){
+  touch();
+  if (+$('fTo').value < +this.value) $('fTo').value = this.value;
+};
+$('fTo').onchange = function(){
+  touch();
+  if (+$('fFrom').value > +this.value) $('fFrom').value = this.value;
+};
 
 function setTimeMode(m){
   state.form.timeMode = m;
   $('modeManual').className = m === 'manual' ? 'chip on' : 'chip';
   $('modeSec').className = m === 'sec' ? 'chip on' : 'chip';
-  $('durField').style.display = m === 'manual' ? 'block' : 'none';
-  $('modsField').style.display = m === 'sec' ? 'block' : 'none';
-  showMsg('');
+  $('manualRow').style.display = m === 'manual' ? '' : 'none';
+  $('modsRow').style.display = m === 'sec' ? '' : 'none';
+  typeMsg();
 }
 $('modeManual').onclick = function(){ touch(); setTimeMode('manual'); };
 $('modeSec').onclick = function(){ touch(); setTimeMode('sec'); };
+
+function typeMsg(){
+  if (state.form.type === 'clase'){
+    showMsg('La clase se va a repetir <b>todas las semanas ese día</b>, con este horario, hasta fin de año. Se configura una sola vez.');
+  } else {
+    showMsg('');
+  }
+}
+
+function setType(t){
+  state.form.type = t;
+  $('typeOnce').className = t === 'once' ? 'chip on' : 'chip';
+  $('typeClass').className = t === 'clase' ? 'chip on' : 'chip';
+  typeMsg();
+}
+$('typeOnce').onclick = function(){ touch(); setType('once'); };
+$('typeClass').onclick = function(){ touch(); setType('clase'); };
 
 function buildDayChips(){
   var html = '', today = startOfDay(new Date());
@@ -943,7 +996,7 @@ function buildDayChips(){
       var p = this.getAttribute('data-d').split('-');
       state.form.day = new Date(+p[0], +p[1] - 1, +p[2]);
       buildDayChips();
-      showMsg('');
+      typeMsg();
     };
   }
 }
@@ -967,6 +1020,7 @@ function openBook(){
   $('fPin').value = '';
   $('pinField').style.display = CONFIG.PIN ? 'block' : 'none';
   setTimeMode(state.form.timeMode);
+  setType('once'); // el tipo Clase se elige a propósito cada vez
   showMsg('');
   $('shade').className = 'on';
   $('sheet').className = 'open';
@@ -996,17 +1050,24 @@ $('saveBook').onclick = function(){
     showMsg('El código de gestión no coincide.', true); return;
   }
 
-  var t = $('fStart').value;
-  if (!/^\d{1,2}:\d{2}/.test(t)){
-    showMsg('Falta la hora de inicio (por ejemplo 09:30).', true); $('fStart').focus(); return;
-  }
-  var p = t.split(':');
   var start = new Date(state.form.day.getTime());
-  start.setHours(+p[0], +p[1], 0, 0);
-  var dur = state.form.timeMode === 'sec'
-    ? parseInt($('fMods').value, 10) * CONFIG.MODULE_MINUTES
-    : parseInt($('fDur').value, 10);
-  var end = new Date(start.getTime() + dur * 60000);
+  var end;
+  if (state.form.timeMode === 'sec'){
+    var mFrom = CONFIG.MODULES[+$('fFrom').value];
+    var mTo = CONFIG.MODULES[+$('fTo').value];
+    var pa = mFrom[0].split(':'), pb = mTo[1].split(':');
+    start.setHours(+pa[0], +pa[1], 0, 0);
+    end = new Date(state.form.day.getTime());
+    end.setHours(+pb[0], +pb[1], 0, 0);
+  } else {
+    var t = $('fStart').value;
+    if (!/^\d{1,2}:\d{2}/.test(t)){
+      showMsg('Falta la hora de inicio (por ejemplo 09:30).', true); $('fStart').focus(); return;
+    }
+    var p = t.split(':');
+    start.setHours(+p[0], +p[1], 0, 0);
+    end = new Date(start.getTime() + parseInt($('fDur').value, 10) * 60000);
+  }
 
   var payload = {
     action: 'create',
@@ -1017,6 +1078,12 @@ $('saveBook').onclick = function(){
     end: isoLocal(end),
     pin: $('fPin').value
   };
+
+  if (state.form.type === 'clase'){
+    if (!/^clase\b/i.test(title)) payload.title = 'Clase: ' + title;
+    payload.repeat = 'weekly';
+    payload.until = start.getFullYear() + '-12-31';
+  }
 
   $('saveBook').disabled = true;
   showMsg('Guardando');
