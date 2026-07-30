@@ -294,6 +294,18 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
 }
 .chip.on{background:var(--ink);color:var(--paper);font-weight:700;}
 
+/* Carga horaria por día (tipo Clase) */
+.dayrow{display:flex;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.dayrow .dw{
+  flex:0 0 96px;font-size:12px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.dayrow select,.dayrow input[type=time]{
+  width:auto;flex:1 1 120px;min-width:110px;
+  margin:0 0 0 8px;padding:8px 10px;font-size:16px;
+}
+.dayrow-empty{padding:10px 0 2px 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.45;}
+
 #msg{margin-top:16px;border:2px solid var(--ink);padding:10px 12px;font-size:15px;display:none;}
 #msg.on{display:block;}
 #msg.bad{background:var(--ink);color:var(--paper);}
@@ -423,10 +435,6 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
       <input type="text" id="fWho" autocomplete="off" placeholder="Nombre de quien reserva">
     </div>
     <div class="field">
-      <label>Día</label>
-      <div class="chips" id="dayChips"></div>
-    </div>
-    <div class="field">
       <label>Tipo de actividad</label>
       <div class="chips">
         <button class="chip on" id="typeOnce" type="button">Puntual</button>
@@ -439,6 +447,15 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
         <button class="chip on" id="modeManual" type="button">Manual</button>
         <button class="chip" id="modeSec" type="button">Módulos institucionales</button>
       </div>
+    </div>
+    <div class="field" id="dateField">
+      <label>Día</label>
+      <div class="chips" id="dayChips"></div>
+    </div>
+    <div class="field" id="weekField" style="display:none">
+      <label>Días de la semana</label>
+      <div class="chips" id="weekChips"></div>
+      <div id="daySchedules"></div>
     </div>
     <div class="row" id="manualRow">
       <div class="field">
@@ -551,7 +568,7 @@ var state = {
   lastUpdate: null,
   lastTouch: Date.now(),
   offline: false,
-  form: { day: startOfDay(new Date()), timeMode: 'manual', type: 'once' }
+  form: { day: startOfDay(new Date()), timeMode: 'manual', type: 'once', days: {} }
 };
 
 function $(id){ return document.getElementById(id); }
@@ -957,8 +974,10 @@ function setTimeMode(m){
   state.form.timeMode = m;
   $('modeManual').className = m === 'manual' ? 'chip on' : 'chip';
   $('modeSec').className = m === 'sec' ? 'chip on' : 'chip';
-  $('manualRow').style.display = m === 'manual' ? '' : 'none';
-  $('modsRow').style.display = m === 'sec' ? '' : 'none';
+  var clase = state.form.type === 'clase';
+  $('manualRow').style.display = (!clase && m === 'manual') ? '' : 'none';
+  $('modsRow').style.display = (!clase && m === 'sec') ? '' : 'none';
+  if (clase) renderDayRows();
   typeMsg();
 }
 $('modeManual').onclick = function(){ touch(); setTimeMode('manual'); };
@@ -966,7 +985,7 @@ $('modeSec').onclick = function(){ touch(); setTimeMode('sec'); };
 
 function typeMsg(){
   if (state.form.type === 'clase'){
-    showMsg('La clase se va a repetir <b>todas las semanas ese día</b>, con este horario, hasta fin de año. Se configura una sola vez.');
+    showMsg('La clase se repite <b>todas las semanas</b> en los días elegidos, cada uno con su carga horaria, hasta fin de año. Se configura una sola vez.');
   } else {
     showMsg('');
   }
@@ -976,7 +995,94 @@ function setType(t){
   state.form.type = t;
   $('typeOnce').className = t === 'once' ? 'chip on' : 'chip';
   $('typeClass').className = t === 'clase' ? 'chip on' : 'chip';
-  typeMsg();
+  var clase = t === 'clase';
+  $('dateField').style.display = clase ? 'none' : '';
+  $('weekField').style.display = clase ? '' : 'none';
+  if (clase) renderWeekChips();
+  setTimeMode(state.form.timeMode);
+}
+
+/* --- días de la semana con carga horaria propia (tipo Clase) --- */
+var WEEK_ORDER = [1,2,3,4,5,6,0]; // lunes primero
+
+function dayCfg(w){
+  if (!state.form.days[w]){
+    state.form.days[w] = { on: false, start: CONFIG.MODULES[0][0], dur: 60, from: 0, to: 0 };
+  }
+  return state.form.days[w];
+}
+
+function renderWeekChips(){
+  var html = '';
+  for (var i = 0; i < WEEK_ORDER.length; i++){
+    var w = WEEK_ORDER[i];
+    var on = state.form.days[w] && state.form.days[w].on;
+    html += '<button type="button" class="chip' + (on ? ' on' : '') + '" data-w="' + w + '">' + DOW[w] + '</button>';
+  }
+  $('weekChips').innerHTML = html;
+  var chips = $('weekChips').getElementsByTagName('button');
+  for (var k = 0; k < chips.length; k++){
+    chips[k].onclick = function(){
+      touch();
+      var c = dayCfg(+this.getAttribute('data-w'));
+      c.on = !c.on;
+      renderWeekChips();
+      renderDayRows();
+    };
+  }
+}
+
+function modSelect(w, k, val){
+  var html = '<select data-w="' + w + '" data-k="' + k + '">';
+  for (var n = 0; n < CONFIG.MODULES.length; n++){
+    html += '<option value="' + n + '"' + (n === val ? ' selected' : '') + '>' +
+            (n + 1) + '.º (' + CONFIG.MODULES[n][0] + '&ndash;' + CONFIG.MODULES[n][1] + ')</option>';
+  }
+  return html + '</select>';
+}
+
+function durSelect(w, val){
+  var html = '<select data-w="' + w + '" data-k="dur">';
+  for (var i = 0; i < CONFIG.DURATIONS.length; i++){
+    var d = CONFIG.DURATIONS[i];
+    html += '<option value="' + d + '"' + (d === val ? ' selected' : '') + '>' + fmtMins(d) + '</option>';
+  }
+  return html + '</select>';
+}
+
+function renderDayRows(){
+  var html = '', sec = state.form.timeMode === 'sec';
+  for (var i = 0; i < WEEK_ORDER.length; i++){
+    var w = WEEK_ORDER[i], c = state.form.days[w];
+    if (!c || !c.on) continue;
+    html += '<div class="dayrow"><div class="dw">' + DOW_LONG[w] + '</div>';
+    if (sec){
+      html += modSelect(w, 'from', c.from) + modSelect(w, 'to', c.to);
+    } else {
+      html += '<input type="time" step="300" value="' + c.start + '" data-w="' + w + '" data-k="start">' + durSelect(w, c.dur);
+    }
+    html += '</div>';
+  }
+  if (!html) html = '<div class="dayrow-empty">Elegí los días de clase</div>';
+  $('daySchedules').innerHTML = html;
+
+  var els = $('daySchedules').querySelectorAll('select,input');
+  for (var k = 0; k < els.length; k++){
+    els[k].onchange = function(){
+      touch();
+      var c = dayCfg(+this.getAttribute('data-w'));
+      var key = this.getAttribute('data-k');
+      c[key] = key === 'start' ? this.value : +this.value;
+      if (key === 'from' && c.to < c.from){ c.to = c.from; renderDayRows(); }
+      if (key === 'to' && c.from > c.to){ c.from = c.to; renderDayRows(); }
+    };
+  }
+}
+
+function nextWeekday(w){
+  var d = startOfDay(new Date());
+  while (d.getDay() !== w) d = addDays(d, 1);
+  return d;
 }
 $('typeOnce').onclick = function(){ touch(); setType('once'); };
 $('typeClass').onclick = function(){ touch(); setType('clase'); };
@@ -1019,6 +1125,7 @@ function openBook(){
   $('fNotes').value = '';
   $('fPin').value = '';
   $('pinField').style.display = CONFIG.PIN ? 'block' : 'none';
+  state.form.days = {}; // cada clase nueva arranca sin días seleccionados
   setTimeMode(state.form.timeMode);
   setType('once'); // el tipo Clase se elige a propósito cada vez
   showMsg('');
@@ -1050,6 +1157,8 @@ $('saveBook').onclick = function(){
     showMsg('El código de gestión no coincide.', true); return;
   }
 
+  if (state.form.type === 'clase'){ saveClase(title); return; }
+
   var start = new Date(state.form.day.getTime());
   var end;
   if (state.form.timeMode === 'sec'){
@@ -1079,12 +1188,6 @@ $('saveBook').onclick = function(){
     pin: $('fPin').value
   };
 
-  if (state.form.type === 'clase'){
-    if (!/^clase\b/i.test(title)) payload.title = 'Clase: ' + title;
-    payload.repeat = 'weekly';
-    payload.until = start.getFullYear() + '-12-31';
-  }
-
   $('saveBook').disabled = true;
   showMsg('Guardando');
   apiCreate(payload, function(err, res){
@@ -1105,6 +1208,95 @@ $('saveBook').onclick = function(){
     load();
   });
 };
+
+// Crea una serie semanal por cada día elegido, uno tras otro.
+function saveClase(title){
+  var days = [];
+  for (var i = 0; i < WEEK_ORDER.length; i++){
+    var w = WEEK_ORDER[i], c = state.form.days[w];
+    if (c && c.on) days.push(w);
+  }
+  if (!days.length){ showMsg('Elegí al menos un día de la semana.', true); return; }
+
+  var sec = state.form.timeMode === 'sec';
+  if (!sec){
+    for (var k = 0; k < days.length; k++){
+      var cfg = state.form.days[days[k]];
+      if (!/^\d{1,2}:\d{2}/.test(cfg.start || '')){
+        showMsg('Falta la hora de inicio del ' + DOW_LONG[days[k]] + '.', true); return;
+      }
+    }
+  }
+
+  var finalTitle = /^clase\b/i.test(title) ? title : 'Clase: ' + title;
+  var who = $('fWho').value.replace(/^\s+|\s+$/g, '');
+  var notes = $('fNotes').value;
+  var pin = $('fPin').value;
+  var now = new Date();
+  var made = [], i2 = 0;
+
+  $('saveBook').disabled = true;
+
+  function step(){
+    if (i2 >= days.length){
+      $('saveBook').disabled = false;
+      closeBook();
+      state.mode = 'week';
+      state.anchor = new Date();
+      render();
+      load();
+      return;
+    }
+    var w = days[i2], c = state.form.days[w];
+    var d = nextWeekday(w);
+    var start = new Date(d.getTime()), end = new Date(d.getTime());
+    if (sec){
+      var pa = CONFIG.MODULES[c.from][0].split(':'), pb = CONFIG.MODULES[c.to][1].split(':');
+      start.setHours(+pa[0], +pa[1], 0, 0);
+      end.setHours(+pb[0], +pb[1], 0, 0);
+    } else {
+      var p = c.start.split(':');
+      start.setHours(+p[0], +p[1], 0, 0);
+      end = new Date(start.getTime() + c.dur * 60000);
+    }
+    if (end <= now){ // hoy es ese día pero el horario ya pasó: arranca la semana que viene
+      start = addDays(start, 7);
+      end = addDays(end, 7);
+    }
+    showMsg('Guardando ' + DOW_LONG[w] + '&hellip; (' + (i2 + 1) + ' de ' + days.length + ')');
+    apiCreate({
+      action: 'create',
+      title: finalTitle,
+      who: who,
+      notes: notes,
+      start: isoLocal(start),
+      end: isoLocal(end),
+      pin: pin,
+      repeat: 'weekly',
+      until: start.getFullYear() + '-12-31'
+    }, function(err, res){
+      if (err || !res.ok){
+        $('saveBook').disabled = false;
+        var m;
+        if (err){
+          m = 'No se pudo guardar el ' + DOW_LONG[w] + ': la tablet no llega al calendario.';
+        } else if (res.conflict){
+          m = 'El ' + DOW_LONG[w] + ' choca con <b>' + esc(res.conflict) + '</b>.';
+        } else {
+          m = 'No se pudo guardar el ' + DOW_LONG[w] + ': ' + esc(res.error || 'error del calendario');
+        }
+        if (made.length) m += ' Ya quedaron cargados: ' + made.join(', ') + '.';
+        showMsg(m, true);
+        load(); // reflejar lo que sí se creó
+        return;
+      }
+      made.push(DOW_LONG[w]);
+      i2++;
+      step();
+    });
+  }
+  step();
+}
 
 // ISO local sin zona: el servidor lo interpreta en la zona del calendario.
 function isoLocal(d){
