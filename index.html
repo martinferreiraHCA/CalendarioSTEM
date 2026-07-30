@@ -117,6 +117,9 @@ button[disabled]{opacity:.28;}
 
 /* ---------- lienzo ---------- */
 main{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+/* En vista mes la grilla llena el alto disponible; solo aparece scroll
+   si el contenido no entra ni apretándose. */
+main.month table.month{height:100%;}
 
 /* ---------- vista semana ---------- */
 .day{display:flex;border-bottom:var(--hair) solid var(--rule);min-height:74px;}
@@ -171,7 +174,8 @@ table.month td{
   border-bottom:var(--hair) solid var(--rule);
   vertical-align:top;
   padding:4px 5px 6px 5px;
-  height:88px;
+  height:44px; /* mínimo; la tabla al 100% reparte el alto sobrante */
+  overflow:hidden;
 }
 table.month td:last-child{border-right:0;}
 table.month td.out{opacity:.3;}
@@ -241,7 +245,7 @@ footer.warn{background:var(--ink);color:var(--paper);}
   display:block;font-size:11px;font-weight:700;letter-spacing:.18em;
   text-transform:uppercase;margin-bottom:6px;
 }
-input[type=text],textarea,select{
+input[type=text],input[type=time],textarea,select{
   width:100%;font-family:inherit;font-size:19px;color:var(--ink);
   background:var(--paper);border:2px solid var(--ink);border-radius:0;
   padding:11px 12px;-webkit-appearance:none;appearance:none;
@@ -278,7 +282,6 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
 @media (min-width:1200px){
   :root{--fs-base:18px;}
   .day{min-height:84px;}
-  table.month td{height:110px;}
   .ev .title{font-size:21px;}
 }
 
@@ -298,7 +301,7 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
   .ev{padding-left:10px;padding-right:10px;}
   .ev .time{flex-basis:88px;font-size:15px;}
   .ev .title{font-size:17px;}
-  table.month td{height:64px;padding:3px 3px 4px 3px;}
+  table.month td{padding:3px 3px 4px 3px;}
   .mnum{font-size:14px;}
   /* Los eventos del mes se vuelven marcas cuadradas: el detalle vive en Semana */
   .mev{
@@ -393,14 +396,25 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
       <label>Día</label>
       <div class="chips" id="dayChips"></div>
     </div>
+    <div class="field">
+      <label>Horario</label>
+      <div class="chips" id="modeChips">
+        <button class="chip on" id="modeManual" type="button">Manual</button>
+        <button class="chip" id="modeSec" type="button">Módulos de secundaria</button>
+      </div>
+    </div>
     <div class="row">
       <div class="field">
         <label for="fStart">Empieza</label>
-        <select id="fStart"></select>
+        <input type="time" id="fStart" step="300">
       </div>
-      <div class="field">
-        <label>Dura</label>
+      <div class="field" id="durField">
+        <label for="fDur">Dura</label>
         <select id="fDur"></select>
+      </div>
+      <div class="field" id="modsField" style="display:none">
+        <label for="fMods">Módulos</label>
+        <select id="fMods"></select>
       </div>
     </div>
     <div class="field">
@@ -434,8 +448,12 @@ var CONFIG = {
 
   OPEN_HOUR: 7,           // primera hora reservable
   CLOSE_HOUR: 19,         // última hora reservable
-  SLOT_MINUTES: 30,       // granularidad del selector de hora
+  SLOT_MINUTES: 30,       // redondeo de la hora sugerida al abrir el formulario
   DURATIONS: [30, 60, 90, 120, 180, 240],
+
+  // Modo "módulos de secundaria": duración = cantidad × minutos por módulo.
+  MODULE_MINUTES: 45,
+  MAX_MODULES: 8,
   BOOK_DAYS_AHEAD: 21,    // días que ofrece el selector de día
 
   REFRESH_MS: 180000,     // recarga de datos: 3 min
@@ -478,7 +496,7 @@ var state = {
   lastUpdate: null,
   lastTouch: Date.now(),
   offline: false,
-  form: { day: startOfDay(new Date()), dur: 60 }
+  form: { day: startOfDay(new Date()), timeMode: 'manual' }
 };
 
 function $(id){ return document.getElementById(id); }
@@ -572,6 +590,7 @@ function render(){
   $('spaceName').textContent = CONFIG.SPACE_NAME;
   $('tabWeek').className = state.mode === 'week' ? 'on' : '';
   $('tabMonth').className = state.mode === 'month' ? 'on' : '';
+  $('view').className = state.mode === 'month' ? 'month' : '';
   if (state.mode === 'week') renderWeek(); else renderMonth();
   setStatus(state.offline ? 'Sin conexión con el calendario' : '');
 }
@@ -684,25 +703,37 @@ $('tabMonth').onclick = function(){ touch(); setMode('month'); };
 /* ============================================================
    7. FORMULARIO DE RESERVA
    ============================================================ */
-function buildTimeOptions(){
-  var sel = $('fStart'), html = '';
-  for (var h = CONFIG.OPEN_HOUR; h <= CONFIG.CLOSE_HOUR; h++){
-    for (var m = 0; m < 60; m += CONFIG.SLOT_MINUTES){
-      if (h === CONFIG.CLOSE_HOUR && m > 0) break;
-      var v = pad2(h) + ':' + pad2(m);
-      html += '<option value="' + v + '">' + v + '</option>';
-    }
-  }
-  sel.innerHTML = html;
+function fmtMins(mins){
+  if (mins < 60) return mins + ' min';
+  return mins % 60 === 0 ? (mins/60) + ' h' : Math.floor(mins/60) + ' h ' + (mins%60) + ' min';
+}
 
+function buildTimeOptions(){
   var ds = '';
   for (var i = 0; i < CONFIG.DURATIONS.length; i++){
     var d = CONFIG.DURATIONS[i];
-    var lbl = d < 60 ? (d + ' min') : (d % 60 === 0 ? (d/60) + ' h' : Math.floor(d/60) + ' h ' + (d%60) + ' min');
-    ds += '<option value="' + d + '"' + (d === 60 ? ' selected' : '') + '>' + lbl + '</option>';
+    ds += '<option value="' + d + '"' + (d === 60 ? ' selected' : '') + '>' + fmtMins(d) + '</option>';
   }
   $('fDur').innerHTML = ds;
+
+  var ms = '';
+  for (var n = 1; n <= CONFIG.MAX_MODULES; n++){
+    var lbl = n + (n === 1 ? ' módulo' : ' módulos') + ' (' + fmtMins(n * CONFIG.MODULE_MINUTES) + ')';
+    ms += '<option value="' + n + '">' + lbl + '</option>';
+  }
+  $('fMods').innerHTML = ms;
 }
+
+function setTimeMode(m){
+  state.form.timeMode = m;
+  $('modeManual').className = m === 'manual' ? 'chip on' : 'chip';
+  $('modeSec').className = m === 'sec' ? 'chip on' : 'chip';
+  $('durField').style.display = m === 'manual' ? 'block' : 'none';
+  $('modsField').style.display = m === 'sec' ? 'block' : 'none';
+  showMsg('');
+}
+$('modeManual').onclick = function(){ touch(); setTimeMode('manual'); };
+$('modeSec').onclick = function(){ touch(); setTimeMode('sec'); };
 
 function buildDayChips(){
   var html = '', today = startOfDay(new Date());
@@ -742,6 +773,7 @@ function openBook(){
   $('fNotes').value = '';
   $('fPin').value = '';
   $('pinField').style.display = CONFIG.PIN ? 'block' : 'none';
+  setTimeMode(state.form.timeMode);
   showMsg('');
   $('shade').className = 'on';
   $('sheet').className = 'open';
@@ -771,10 +803,16 @@ $('saveBook').onclick = function(){
     showMsg('El código de gestión no coincide.', true); return;
   }
 
-  var p = $('fStart').value.split(':');
+  var t = $('fStart').value;
+  if (!/^\d{1,2}:\d{2}/.test(t)){
+    showMsg('Falta la hora de inicio (por ejemplo 09:30).', true); $('fStart').focus(); return;
+  }
+  var p = t.split(':');
   var start = new Date(state.form.day.getTime());
   start.setHours(+p[0], +p[1], 0, 0);
-  var dur = parseInt($('fDur').value, 10);
+  var dur = state.form.timeMode === 'sec'
+    ? parseInt($('fMods').value, 10) * CONFIG.MODULE_MINUTES
+    : parseInt($('fDur').value, 10);
   var end = new Date(start.getTime() + dur * 60000);
 
   var payload = {
