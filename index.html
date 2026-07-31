@@ -11,23 +11,17 @@
    Jerarquía por peso tipográfico, inversión y filete.
    ============================================================ */
 
-:root{
-  --ink:#000;
-  --paper:#fff;
-  --rule:#000;
-  --hair:1px;
-  --pad:clamp(10px,2vw,16px);
-  --fs-base:clamp(15px,1.6vw,17px);
-}
+/* Sin variables CSS ni clamp()/min()/gap: compatible con WebView de
+   Android 6 (Chromium 44+), p. ej. tablet PadU800 con navegador Via. */
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;height:100%;}
 @supports (height:100dvh){ html,body,#app{height:100dvh;} }
 body{
-  background:var(--paper);
-  color:var(--ink);
+  background:#fff;
+  color:#000;
   font-family:"Helvetica Neue",Helvetica,Roboto,Arial,sans-serif;
-  font-size:var(--fs-base);
+  font-size:17px;
   line-height:1.25;
   -webkit-font-smoothing:antialiased;
   overflow:hidden;
@@ -40,8 +34,8 @@ body{
 
 /* ---------- cabecera ---------- */
 header{
-  border-bottom:3px solid var(--rule);
-  padding:10px var(--pad) 8px var(--pad);
+  border-bottom:3px solid #000;
+  padding:10px 12px 8px 12px;
   flex:0 0 auto;
 }
 .top{display:flex;align-items:flex-end;}
@@ -58,7 +52,7 @@ header{
 }
 .clock{
   flex:0 0 auto;
-  font-size:clamp(26px,4.5vw,40px);
+  font-size:40px;
   font-weight:700;
   letter-spacing:-.02em;
   line-height:.95;
@@ -73,7 +67,7 @@ header{
   margin-top:4px;
 }
 
-.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 0;margin-top:9px;}
+.bar{display:flex;align-items:center;flex-wrap:wrap;margin-top:9px;}
 .range{
   flex:1 1 auto;
   font-size:19px;
@@ -88,9 +82,9 @@ header{
 button{
   font-family:inherit;
   font-size:15px;
-  color:var(--ink);
-  background:var(--paper);
-  border:2px solid var(--ink);
+  color:#000;
+  background:#fff;
+  border:2px solid #000;
   border-radius:0;
   padding:0 14px;
   height:44px;
@@ -101,19 +95,19 @@ button{
   -webkit-appearance:none;appearance:none;
   touch-action:manipulation;
 }
-button:active{background:var(--ink);color:var(--paper);}
-button:focus{outline:2px solid var(--ink);outline-offset:2px;}
+button:active{background:#000;color:#fff;}
+button:focus{outline:2px solid #000;outline-offset:2px;}
 button[disabled]{opacity:.28;}
 .tabs{flex:0 0 auto;display:flex;margin-right:8px;}
 .tabs button{border-right-width:0;min-width:96px;}
 .tabs button:last-child{border-right-width:2px;}
-.tabs button.on{background:var(--ink);color:var(--paper);}
+.tabs button.on{background:#000;color:#fff;}
 .nav{flex:0 0 auto;display:flex;margin-right:8px;}
 .nav button{width:52px;padding:0;border-right-width:0;font-size:22px;line-height:38px;}
 .nav button:last-child{border-right-width:2px;}
 .nav #today{width:auto;padding:0 12px;font-size:15px;}
-.book{flex:0 0 auto;font-weight:700;background:var(--ink);color:var(--paper);}
-.book:active{background:var(--paper);color:var(--ink);}
+.book{flex:0 0 auto;font-weight:700;background:#000;color:#fff;}
+.book:active{background:#fff;color:#000;}
 
 /* ---------- lienzo ---------- */
 main{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
@@ -122,25 +116,25 @@ main{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:
 main.month table.month{height:100%;}
 
 /* ---------- vista semana ---------- */
-.day{display:flex;border-bottom:var(--hair) solid var(--rule);min-height:74px;}
+.day{display:flex;border-bottom:1px solid #000;min-height:74px;}
 .day:last-child{border-bottom:0;}
 .day .gutter{
   flex:0 0 96px;
-  border-right:var(--hair) solid var(--rule);
-  padding:9px 10px 9px var(--pad);
+  border-right:1px solid #000;
+  padding:9px 10px 9px 12px;
   text-align:right;
 }
 .day .dnum{font-size:31px;font-weight:700;line-height:.9;letter-spacing:-.03em;}
 .day .dname{font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:5px;}
-.day.today .gutter{background:var(--ink);color:var(--paper);}
-.day.past .gutter{color:var(--ink);opacity:.4;}
+.day.today .gutter{background:#000;color:#fff;}
+.day.past .gutter{color:#000;opacity:.4;}
 .day .slots{flex:1 1 auto;min-width:0;}
 
 .ev{
   display:flex;
   align-items:baseline;
   padding:9px 14px 9px 12px;
-  border-bottom:var(--hair) dotted var(--rule);
+  border-bottom:1px dotted #000;
 }
 .ev:last-child{border-bottom:0;}
 .ev .time{
@@ -153,11 +147,11 @@ main.month table.month{height:100%;}
 .ev .body{flex:1 1 auto;min-width:0;}
 .ev .title{font-size:19px;font-weight:400;word-wrap:break-word;}
 .ev .meta{font-size:13px;margin-top:3px;letter-spacing:.04em;text-transform:uppercase;}
-.ev.now{background:var(--ink);color:var(--paper);}
+.ev.now{background:#000;color:#fff;}
 .ev.now .title{font-weight:700;}
 .ev.done .time,.ev.done .title,.ev.done .meta{opacity:.42;}
 .ev .tag{
-  display:inline-block;border:var(--hair) solid currentColor;
+  display:inline-block;border:1px solid currentColor;
   font-size:11px;letter-spacing:.14em;text-transform:uppercase;
   padding:1px 5px;margin-right:6px;vertical-align:1px;
 }
@@ -167,11 +161,11 @@ main.month table.month{height:100%;}
 table.month{width:100%;border-collapse:collapse;table-layout:fixed;}
 table.month th{
   font-size:11px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;
-  padding:7px 4px;border-bottom:2px solid var(--rule);
+  padding:7px 4px;border-bottom:2px solid #000;
 }
 table.month td{
-  border-right:var(--hair) solid var(--rule);
-  border-bottom:var(--hair) solid var(--rule);
+  border-right:1px solid #000;
+  border-bottom:1px solid #000;
   vertical-align:top;
   padding:4px 5px 6px 5px;
   height:44px; /* mínimo; la tabla al 100% reparte el alto sobrante */
@@ -181,13 +175,13 @@ table.month td:last-child{border-right:0;}
 table.month td.out{opacity:.3;}
 .mnum{font-size:17px;font-weight:700;line-height:1;}
 td.today .mnum{
-  background:var(--ink);color:var(--paper);
+  background:#000;color:#fff;
   display:inline-block;padding:3px 6px;margin:-2px 0 0 -2px;
 }
 .mev{
   font-size:12px;line-height:1.2;margin-top:4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  border-left:3px solid var(--ink);padding-left:5px;
+  border-left:3px solid #000;padding-left:5px;
 }
 .mmore{font-size:11px;margin-top:4px;letter-spacing:.1em;opacity:.55;}
 
@@ -199,32 +193,33 @@ main.dayview{overflow:hidden;}
 .card{
   flex:0 0 100%;min-width:0;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:20px var(--pad) 56px var(--pad);
-  border-right:var(--hair) solid var(--rule);
+  text-align:center;padding:20px 12px 56px 12px;
+  border-right:1px solid #000;
 }
 .card .c-status{
   border:2px solid currentColor;padding:3px 12px;
   font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
   margin-bottom:20px;
 }
-.card .c-time{font-size:clamp(26px,6vw,46px);font-weight:700;letter-spacing:-.02em;}
+.card .c-time{font-size:40px;font-weight:700;letter-spacing:-.02em;}
 .card .c-title{
-  font-size:clamp(22px,5vw,38px);font-weight:400;line-height:1.15;
-  margin-top:14px;max-width:26ch;overflow-wrap:break-word;
+  font-size:32px;font-weight:400;line-height:1.15;
+  margin-top:14px;max-width:26ch;word-wrap:break-word;
 }
 .card .c-meta{margin-top:14px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;}
 .card .c-hint{margin-top:18px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.45;}
-.card.now{background:var(--ink);color:var(--paper);}
+.card.now{background:#000;color:#fff;}
 .card.done{opacity:.45;}
 .dots{position:absolute;left:0;right:0;bottom:16px;display:flex;justify-content:center;}
-.dot{width:10px;height:10px;border:2px solid var(--ink);background:var(--paper);margin:0 5px;}
-.dot.on{background:var(--ink);}
+.dot{width:10px;height:10px;border:2px solid #000;background:#fff;margin:0 5px;}
+.dot.on{background:#000;}
 
 /* ---------- pie ---------- */
 footer{
   flex:0 0 auto;
-  border-top:var(--hair) solid var(--rule);
-  padding:6px var(--pad) calc(6px + env(safe-area-inset-bottom,0px)) var(--pad);
+  border-top:1px solid #000;
+  padding:6px 12px;
+  padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px)) 12px;
   display:flex;
   font-size:11px;
   letter-spacing:.13em;
@@ -232,7 +227,7 @@ footer{
 }
 footer .l{flex:1 1 auto;}
 footer .r{flex:0 0 auto;}
-footer.warn{background:var(--ink);color:var(--paper);}
+footer.warn{background:#000;color:#fff;}
 
 /* ---------- panel de reserva ---------- */
 #shade{
@@ -243,7 +238,7 @@ footer.warn{background:var(--ink);color:var(--paper);}
 #shade.on{display:block;}
 #sheet{
   position:fixed;top:0;left:0;right:0;bottom:0;
-  background:var(--paper);
+  background:#fff;
   display:none;
   flex-direction:column;
   z-index:20;
@@ -254,19 +249,20 @@ footer.warn{background:var(--ink);color:var(--paper);}
   #sheet{
     top:50%;left:50%;right:auto;bottom:auto;
     transform:translate(-50%,-50%);
-    width:min(600px,92vw);
-    max-height:min(90vh,760px);
-    border:3px solid var(--ink);
-    box-shadow:10px 10px 0 var(--ink);
+    width:92vw;
+    max-width:600px;
+    max-height:90vh;
+    border:3px solid #000;
+    box-shadow:10px 10px 0 #000;
   }
 }
 .sh-top{
   flex:0 0 auto;display:flex;align-items:center;
-  border-bottom:3px solid var(--rule);padding:10px var(--pad);
+  border-bottom:3px solid #000;padding:10px 12px;
 }
 .sh-top h2{flex:1 1 auto;margin:0;font-size:20px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;}
-.sh-body{flex:1 1 auto;overflow-y:auto;padding:0 var(--pad) 16px var(--pad);}
-.sh-foot{flex:0 0 auto;border-top:var(--hair) solid var(--rule);padding:10px var(--pad);display:flex;}
+.sh-body{flex:1 1 auto;overflow-y:auto;padding:0 12px 16px 12px;}
+.sh-foot{flex:0 0 auto;border-top:1px solid #000;padding:10px 12px;display:flex;}
 .sh-foot .grow{flex:1 1 auto;}
 
 .field{margin-top:16px;}
@@ -275,48 +271,60 @@ footer.warn{background:var(--ink);color:var(--paper);}
   text-transform:uppercase;margin-bottom:6px;
 }
 input[type=text],input[type=time],textarea,select{
-  width:100%;font-family:inherit;font-size:19px;color:var(--ink);
-  background:var(--paper);border:2px solid var(--ink);border-radius:0;
+  width:100%;font-family:inherit;font-size:19px;color:#000;
+  background:#fff;border:2px solid #000;border-radius:0;
   padding:11px 12px;-webkit-appearance:none;appearance:none;
 }
 select{background-image:none;}
 textarea{resize:none;height:74px;font-size:16px;}
-input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-offset:-1px;}
+input:focus,textarea:focus,select:focus{outline:3px solid #000;outline-offset:-1px;}
 .row{display:flex;}
 .row>div{flex:1 1 0;padding-right:8px;}
 .row>div:last-child{padding-right:0;}
 
 .chips{display:flex;flex-wrap:wrap;}
 .chip{
-  border:2px solid var(--ink);background:var(--paper);color:var(--ink);
+  border:2px solid #000;background:#fff;color:#000;
   font-size:15px;letter-spacing:.04em;text-transform:none;
   height:44px;line-height:40px;padding:0 15px;margin:0 8px 8px 0;
 }
-.chip.on{background:var(--ink);color:var(--paper);font-weight:700;}
+.chip.on{background:#000;color:#fff;font-weight:700;}
 
-#msg{margin-top:16px;border:2px solid var(--ink);padding:10px 12px;font-size:15px;display:none;}
+/* Carga horaria por día (tipo Clase) */
+.dayrow{display:flex;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.dayrow .dw{
+  flex:0 0 96px;font-size:12px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.dayrow select,.dayrow input[type=time]{
+  width:auto;flex:1 1 120px;min-width:110px;
+  margin:0 0 0 8px;padding:8px 10px;font-size:16px;
+}
+.dayrow-empty{padding:10px 0 2px 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.45;}
+
+#msg{margin-top:16px;border:2px solid #000;padding:10px 12px;font-size:15px;display:none;}
 #msg.on{display:block;}
-#msg.bad{background:var(--ink);color:var(--paper);}
+#msg.bad{background:#000;color:#fff;}
 
 .pill{
-  display:inline-block;border:var(--hair) solid var(--ink);
+  display:inline-block;border:1px solid #000;
   padding:2px 7px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
 }
-.busy{position:fixed;top:0;left:0;right:0;height:3px;background:var(--ink);display:none;z-index:30;}
+.busy{position:fixed;top:0;left:0;right:0;height:3px;background:#000;display:none;z-index:30;}
 .busy.on{display:block;}
 
 /* ---------- responsive ---------- */
 
 /* Pantallas grandes (TV / monitor de kiosco) */
 @media (min-width:1200px){
-  :root{--fs-base:18px;}
+  body{font-size:18px;}
   .day{min-height:84px;}
   .ev .title{font-size:21px;}
 }
 
 /* Tablet angosta / teléfono grande: la fila de controles se parte en dos */
 @media (max-width:720px){
-  .range{flex:1 1 100%;order:2;}
+  .range{flex:1 1 100%;order:2;margin-top:8px;}
   .nav,.tabs{order:1;}
   .book{order:1;margin-left:auto;}
   .tabs button{min-width:76px;}
@@ -324,6 +332,10 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
 
 /* Teléfono */
 @media (max-width:640px){
+  body{font-size:16px;}
+  .clock{font-size:30px;}
+  .card .c-time{font-size:30px;}
+  .card .c-title{font-size:24px;}
   .space-name{letter-spacing:.14em;font-size:13px;}
   .day .gutter{flex-basis:64px;padding-left:8px;padding-right:8px;}
   .day .dnum{font-size:26px;}
@@ -335,7 +347,7 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
   /* Los eventos del mes se vuelven marcas cuadradas: el detalle vive en Semana */
   .mev{
     display:inline-block;width:8px;height:8px;margin:5px 4px 0 0;
-    padding:0;border-left:0;background:var(--ink);
+    padding:0;border-left:0;background:#000;
     overflow:hidden;font-size:0;line-height:0;vertical-align:top;
   }
   .mmore{display:inline-block;margin:3px 0 0 0;font-size:10px;}
@@ -346,8 +358,8 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
 @media (max-width:440px){
   .top{flex-wrap:wrap;}
   .space-name{flex:1 1 100%;padding-bottom:2px;}
-  .clock{margin-left:auto;display:flex;align-items:baseline;gap:8px;}
-  .clock .dow{margin-top:0;}
+  .clock{margin-left:auto;display:flex;align-items:baseline;}
+  .clock .dow{margin-top:0;margin-left:8px;}
   .nav button{width:44px;}
   .nav #today{width:auto;padding:0 10px;font-size:14px;}
   .tabs button{min-width:0;padding:0 10px;}
@@ -423,10 +435,6 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
       <input type="text" id="fWho" autocomplete="off" placeholder="Nombre de quien reserva">
     </div>
     <div class="field">
-      <label>Día</label>
-      <div class="chips" id="dayChips"></div>
-    </div>
-    <div class="field">
       <label>Tipo de actividad</label>
       <div class="chips">
         <button class="chip on" id="typeOnce" type="button">Puntual</button>
@@ -439,6 +447,15 @@ input:focus,textarea:focus,select:focus{outline:3px solid var(--ink);outline-off
         <button class="chip on" id="modeManual" type="button">Manual</button>
         <button class="chip" id="modeSec" type="button">Módulos institucionales</button>
       </div>
+    </div>
+    <div class="field" id="dateField">
+      <label>Día</label>
+      <div class="chips" id="dayChips"></div>
+    </div>
+    <div class="field" id="weekField" style="display:none">
+      <label>Días de la semana</label>
+      <div class="chips" id="weekChips"></div>
+      <div id="daySchedules"></div>
     </div>
     <div class="row" id="manualRow">
       <div class="field">
@@ -551,7 +568,7 @@ var state = {
   lastUpdate: null,
   lastTouch: Date.now(),
   offline: false,
-  form: { day: startOfDay(new Date()), timeMode: 'manual', type: 'once' }
+  form: { day: startOfDay(new Date()), timeMode: 'manual', type: 'once', days: {} }
 };
 
 function $(id){ return document.getElementById(id); }
@@ -561,26 +578,43 @@ function $(id){ return document.getElementById(id); }
    ============================================================ */
 function busy(on){ $('busy').className = on ? 'busy on' : 'busy'; }
 
-function apiGet(from, to, cb){
-  var url = CONFIG.API_URL + '?action=list&from=' + ymd(from) + '&to=' + ymd(to) + '&t=' + Date.now();
+// XMLHttpRequest en lugar de fetch: funciona en WebViews viejos
+// (Android 6 / Chromium 44) donde fetch puede faltar o fallar.
+function xhr(method, url, body, cb){
   busy(true);
-  fetch(url, { method:'GET' })
-    .then(function(r){ return r.json(); })
-    .then(function(j){ busy(false); cb(null, j); })
-    .catch(function(e){ busy(false); cb(e); });
+  var done = false;
+  function fin(err, data){
+    if (done) return;
+    done = true;
+    busy(false);
+    cb(err, data);
+  }
+  try {
+    var r = new XMLHttpRequest();
+    r.open(method, url, true);
+    r.timeout = 30000;
+    if (body) r.setRequestHeader('Content-Type', 'text/plain;charset=utf-8'); // evita el preflight CORS
+    r.onreadystatechange = function(){
+      if (r.readyState !== 4) return;
+      if (r.status < 200 || r.status >= 400){ fin(new Error('HTTP ' + r.status)); return; }
+      var j = null;
+      try { j = JSON.parse(r.responseText); } catch (e){ fin(e); return; }
+      fin(null, j);
+    };
+    r.ontimeout = function(){ fin(new Error('timeout')); };
+    r.onerror = function(){ fin(new Error('red')); };
+    r.send(body || null);
+  } catch (e){
+    fin(e);
+  }
+}
+
+function apiGet(from, to, cb){
+  xhr('GET', CONFIG.API_URL + '?action=list&from=' + ymd(from) + '&to=' + ymd(to) + '&t=' + Date.now(), null, cb);
 }
 
 function apiCreate(payload, cb){
-  busy(true);
-  // text/plain evita el preflight CORS, que Apps Script no responde.
-  fetch(CONFIG.API_URL, {
-    method:'POST',
-    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  })
-    .then(function(r){ return r.json(); })
-    .then(function(j){ busy(false); cb(null, j); })
-    .catch(function(e){ busy(false); cb(e); });
+  xhr('POST', CONFIG.API_URL, JSON.stringify(payload), cb);
 }
 
 /* ============================================================
@@ -888,8 +922,8 @@ function bindCarousel(){
     car.addEventListener('pointerup', up);
     car.addEventListener('pointercancel', up);
   } else {
-    car.addEventListener('touchstart', function(e){ down(e.touches[0].clientX, e.timeStamp); }, {passive:true});
-    car.addEventListener('touchmove', function(e){ move(e.touches[0].clientX, e.timeStamp); }, {passive:true});
+    car.addEventListener('touchstart', function(e){ down(e.touches[0].clientX, e.timeStamp); }, false);
+    car.addEventListener('touchmove', function(e){ move(e.touches[0].clientX, e.timeStamp); }, false);
     car.addEventListener('touchend', up);
     car.addEventListener('touchcancel', up);
   }
@@ -957,8 +991,10 @@ function setTimeMode(m){
   state.form.timeMode = m;
   $('modeManual').className = m === 'manual' ? 'chip on' : 'chip';
   $('modeSec').className = m === 'sec' ? 'chip on' : 'chip';
-  $('manualRow').style.display = m === 'manual' ? '' : 'none';
-  $('modsRow').style.display = m === 'sec' ? '' : 'none';
+  var clase = state.form.type === 'clase';
+  $('manualRow').style.display = (!clase && m === 'manual') ? '' : 'none';
+  $('modsRow').style.display = (!clase && m === 'sec') ? '' : 'none';
+  if (clase) renderDayRows();
   typeMsg();
 }
 $('modeManual').onclick = function(){ touch(); setTimeMode('manual'); };
@@ -966,7 +1002,7 @@ $('modeSec').onclick = function(){ touch(); setTimeMode('sec'); };
 
 function typeMsg(){
   if (state.form.type === 'clase'){
-    showMsg('La clase se va a repetir <b>todas las semanas ese día</b>, con este horario, hasta fin de año. Se configura una sola vez.');
+    showMsg('La clase se repite <b>todas las semanas</b> en los días elegidos, cada uno con su carga horaria, hasta fin de año. Se configura una sola vez.');
   } else {
     showMsg('');
   }
@@ -976,7 +1012,94 @@ function setType(t){
   state.form.type = t;
   $('typeOnce').className = t === 'once' ? 'chip on' : 'chip';
   $('typeClass').className = t === 'clase' ? 'chip on' : 'chip';
-  typeMsg();
+  var clase = t === 'clase';
+  $('dateField').style.display = clase ? 'none' : '';
+  $('weekField').style.display = clase ? '' : 'none';
+  if (clase) renderWeekChips();
+  setTimeMode(state.form.timeMode);
+}
+
+/* --- días de la semana con carga horaria propia (tipo Clase) --- */
+var WEEK_ORDER = [1,2,3,4,5,6,0]; // lunes primero
+
+function dayCfg(w){
+  if (!state.form.days[w]){
+    state.form.days[w] = { on: false, start: CONFIG.MODULES[0][0], dur: 60, from: 0, to: 0 };
+  }
+  return state.form.days[w];
+}
+
+function renderWeekChips(){
+  var html = '';
+  for (var i = 0; i < WEEK_ORDER.length; i++){
+    var w = WEEK_ORDER[i];
+    var on = state.form.days[w] && state.form.days[w].on;
+    html += '<button type="button" class="chip' + (on ? ' on' : '') + '" data-w="' + w + '">' + DOW[w] + '</button>';
+  }
+  $('weekChips').innerHTML = html;
+  var chips = $('weekChips').getElementsByTagName('button');
+  for (var k = 0; k < chips.length; k++){
+    chips[k].onclick = function(){
+      touch();
+      var c = dayCfg(+this.getAttribute('data-w'));
+      c.on = !c.on;
+      renderWeekChips();
+      renderDayRows();
+    };
+  }
+}
+
+function modSelect(w, k, val){
+  var html = '<select data-w="' + w + '" data-k="' + k + '">';
+  for (var n = 0; n < CONFIG.MODULES.length; n++){
+    html += '<option value="' + n + '"' + (n === val ? ' selected' : '') + '>' +
+            (n + 1) + '.º (' + CONFIG.MODULES[n][0] + '&ndash;' + CONFIG.MODULES[n][1] + ')</option>';
+  }
+  return html + '</select>';
+}
+
+function durSelect(w, val){
+  var html = '<select data-w="' + w + '" data-k="dur">';
+  for (var i = 0; i < CONFIG.DURATIONS.length; i++){
+    var d = CONFIG.DURATIONS[i];
+    html += '<option value="' + d + '"' + (d === val ? ' selected' : '') + '>' + fmtMins(d) + '</option>';
+  }
+  return html + '</select>';
+}
+
+function renderDayRows(){
+  var html = '', sec = state.form.timeMode === 'sec';
+  for (var i = 0; i < WEEK_ORDER.length; i++){
+    var w = WEEK_ORDER[i], c = state.form.days[w];
+    if (!c || !c.on) continue;
+    html += '<div class="dayrow"><div class="dw">' + DOW_LONG[w] + '</div>';
+    if (sec){
+      html += modSelect(w, 'from', c.from) + modSelect(w, 'to', c.to);
+    } else {
+      html += '<input type="time" step="300" value="' + c.start + '" data-w="' + w + '" data-k="start">' + durSelect(w, c.dur);
+    }
+    html += '</div>';
+  }
+  if (!html) html = '<div class="dayrow-empty">Elegí los días de clase</div>';
+  $('daySchedules').innerHTML = html;
+
+  var els = $('daySchedules').querySelectorAll('select,input');
+  for (var k = 0; k < els.length; k++){
+    els[k].onchange = function(){
+      touch();
+      var c = dayCfg(+this.getAttribute('data-w'));
+      var key = this.getAttribute('data-k');
+      c[key] = key === 'start' ? this.value : +this.value;
+      if (key === 'from' && c.to < c.from){ c.to = c.from; renderDayRows(); }
+      if (key === 'to' && c.from > c.to){ c.from = c.to; renderDayRows(); }
+    };
+  }
+}
+
+function nextWeekday(w){
+  var d = startOfDay(new Date());
+  while (d.getDay() !== w) d = addDays(d, 1);
+  return d;
 }
 $('typeOnce').onclick = function(){ touch(); setType('once'); };
 $('typeClass').onclick = function(){ touch(); setType('clase'); };
@@ -1019,6 +1142,7 @@ function openBook(){
   $('fNotes').value = '';
   $('fPin').value = '';
   $('pinField').style.display = CONFIG.PIN ? 'block' : 'none';
+  state.form.days = {}; // cada clase nueva arranca sin días seleccionados
   setTimeMode(state.form.timeMode);
   setType('once'); // el tipo Clase se elige a propósito cada vez
   showMsg('');
@@ -1039,7 +1163,7 @@ function showMsg(txt, bad){
 $('openBook').onclick = function(){ touch(); openBook(); };
 $('closeBook').onclick = closeBook;
 document.addEventListener('keydown', function(e){
-  if (e.key === 'Escape') closeBook();
+  if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) closeBook();
 });
 
 $('saveBook').onclick = function(){
@@ -1049,6 +1173,8 @@ $('saveBook').onclick = function(){
   if (CONFIG.PIN && $('fPin').value.replace(/^\s+|\s+$/g,'') !== CONFIG.PIN){
     showMsg('El código de gestión no coincide.', true); return;
   }
+
+  if (state.form.type === 'clase'){ saveClase(title); return; }
 
   var start = new Date(state.form.day.getTime());
   var end;
@@ -1079,12 +1205,6 @@ $('saveBook').onclick = function(){
     pin: $('fPin').value
   };
 
-  if (state.form.type === 'clase'){
-    if (!/^clase\b/i.test(title)) payload.title = 'Clase: ' + title;
-    payload.repeat = 'weekly';
-    payload.until = start.getFullYear() + '-12-31';
-  }
-
   $('saveBook').disabled = true;
   showMsg('Guardando');
   apiCreate(payload, function(err, res){
@@ -1105,6 +1225,95 @@ $('saveBook').onclick = function(){
     load();
   });
 };
+
+// Crea una serie semanal por cada día elegido, uno tras otro.
+function saveClase(title){
+  var days = [];
+  for (var i = 0; i < WEEK_ORDER.length; i++){
+    var w = WEEK_ORDER[i], c = state.form.days[w];
+    if (c && c.on) days.push(w);
+  }
+  if (!days.length){ showMsg('Elegí al menos un día de la semana.', true); return; }
+
+  var sec = state.form.timeMode === 'sec';
+  if (!sec){
+    for (var k = 0; k < days.length; k++){
+      var cfg = state.form.days[days[k]];
+      if (!/^\d{1,2}:\d{2}/.test(cfg.start || '')){
+        showMsg('Falta la hora de inicio del ' + DOW_LONG[days[k]] + '.', true); return;
+      }
+    }
+  }
+
+  var finalTitle = /^clase\b/i.test(title) ? title : 'Clase: ' + title;
+  var who = $('fWho').value.replace(/^\s+|\s+$/g, '');
+  var notes = $('fNotes').value;
+  var pin = $('fPin').value;
+  var now = new Date();
+  var made = [], i2 = 0;
+
+  $('saveBook').disabled = true;
+
+  function step(){
+    if (i2 >= days.length){
+      $('saveBook').disabled = false;
+      closeBook();
+      state.mode = 'week';
+      state.anchor = new Date();
+      render();
+      load();
+      return;
+    }
+    var w = days[i2], c = state.form.days[w];
+    var d = nextWeekday(w);
+    var start = new Date(d.getTime()), end = new Date(d.getTime());
+    if (sec){
+      var pa = CONFIG.MODULES[c.from][0].split(':'), pb = CONFIG.MODULES[c.to][1].split(':');
+      start.setHours(+pa[0], +pa[1], 0, 0);
+      end.setHours(+pb[0], +pb[1], 0, 0);
+    } else {
+      var p = c.start.split(':');
+      start.setHours(+p[0], +p[1], 0, 0);
+      end = new Date(start.getTime() + c.dur * 60000);
+    }
+    if (end <= now){ // hoy es ese día pero el horario ya pasó: arranca la semana que viene
+      start = addDays(start, 7);
+      end = addDays(end, 7);
+    }
+    showMsg('Guardando ' + DOW_LONG[w] + '&hellip; (' + (i2 + 1) + ' de ' + days.length + ')');
+    apiCreate({
+      action: 'create',
+      title: finalTitle,
+      who: who,
+      notes: notes,
+      start: isoLocal(start),
+      end: isoLocal(end),
+      pin: pin,
+      repeat: 'weekly',
+      until: start.getFullYear() + '-12-31'
+    }, function(err, res){
+      if (err || !res.ok){
+        $('saveBook').disabled = false;
+        var m;
+        if (err){
+          m = 'No se pudo guardar el ' + DOW_LONG[w] + ': la tablet no llega al calendario.';
+        } else if (res.conflict){
+          m = 'El ' + DOW_LONG[w] + ' choca con <b>' + esc(res.conflict) + '</b>.';
+        } else {
+          m = 'No se pudo guardar el ' + DOW_LONG[w] + ': ' + esc(res.error || 'error del calendario');
+        }
+        if (made.length) m += ' Ya quedaron cargados: ' + made.join(', ') + '.';
+        showMsg(m, true);
+        load(); // reflejar lo que sí se creó
+        return;
+      }
+      made.push(DOW_LONG[w]);
+      i2++;
+      step();
+    });
+  }
+  step();
+}
 
 // ISO local sin zona: el servidor lo interpreta en la zona del calendario.
 function isoLocal(d){
