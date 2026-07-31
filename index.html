@@ -214,6 +214,36 @@ main.dayview{overflow:hidden;}
 .dot{width:10px;height:10px;border:2px solid #000;background:#fff;margin:0 5px;}
 .dot.on{background:#000;}
 
+/* ---------- vista cronograma: el día hora por hora ---------- */
+.crono{position:relative;margin-left:70px;border-left:1px solid #000;}
+.cr-hour{height:56px;border-top:1px solid #000;position:relative;}
+.cr-hour span{
+  position:absolute;left:-70px;top:-8px;width:58px;text-align:right;
+  font-size:12px;letter-spacing:.04em;background:#fff;
+}
+.cr-end{height:0;border-top:1px solid #000;}
+.cr-ev{
+  position:absolute;left:8px;right:10px;
+  border:2px solid #000;background:#fff;
+  padding:4px 9px;overflow:hidden;
+  font-size:15px;line-height:1.25;
+}
+.cr-ev b{font-weight:700;}
+.cr-ev .crw{font-size:12px;letter-spacing:.06em;text-transform:uppercase;}
+.cr-ev.now{background:#000;color:#fff;}
+.cr-ev.done{opacity:.45;}
+.cr-now{position:absolute;left:-8px;right:0;height:0;border-top:2px solid #000;z-index:5;}
+.cr-now b{
+  position:absolute;left:-62px;top:-9px;
+  background:#000;color:#fff;font-size:11px;font-weight:700;
+  padding:2px 5px;letter-spacing:.06em;
+}
+.cr-free{
+  position:absolute;left:8px;right:10px;
+  font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.3;
+  padding-top:4px;padding-left:2px;
+}
+
 /* ---------- pie ---------- */
 footer{
   flex:0 0 auto;
@@ -330,6 +360,16 @@ input:focus,textarea:focus,select:focus{outline:3px solid #000;outline-offset:-1
   .tabs button{min-width:76px;}
 }
 
+/* Con cuatro pestañas la tira no entra en pantallas angostas:
+   se envuelve y cada botón lleva su borde completo. */
+@media (max-width:620px){
+  .tabs{flex-wrap:wrap;max-width:100%;flex-shrink:1;}
+  .tabs button{
+    border-right-width:2px;margin:0 6px 6px 0;
+    min-width:0;padding:0 10px;font-size:13px;height:40px;line-height:36px;
+  }
+}
+
 /* Teléfono */
 @media (max-width:640px){
   body{font-size:16px;}
@@ -405,6 +445,7 @@ input:focus,textarea:focus,select:focus{outline:3px solid #000;outline-offset:-1
         <button id="tabWeek" class="on">Semana</button>
         <button id="tabMonth">Mes</button>
         <button id="tabDay">Actividades del día</button>
+        <button id="tabCrono">Cronograma</button>
       </div>
       <button class="book" id="openBook">+ Reservar</button>
     </div>
@@ -621,7 +662,7 @@ function apiCreate(payload, cb){
    5. CARGA Y DIBUJO
    ============================================================ */
 function visibleRange(){
-  if (state.mode === 'day'){
+  if (state.mode === 'day' || state.mode === 'crono'){
     var s = startOfDay(state.anchor);
     return { from: s, to: s };
   }
@@ -685,9 +726,11 @@ function render(){
   $('tabWeek').className = state.mode === 'week' ? 'on' : '';
   $('tabMonth').className = state.mode === 'month' ? 'on' : '';
   $('tabDay').className = state.mode === 'day' ? 'on' : '';
+  $('tabCrono').className = state.mode === 'crono' ? 'on' : '';
   $('view').className = state.mode === 'month' ? 'month' : (state.mode === 'day' ? 'dayview' : '');
   if (state.mode === 'week') renderWeek();
   else if (state.mode === 'month') renderMonth();
+  else if (state.mode === 'crono') renderCrono();
   else renderDay();
   setStatus(state.offline ? 'Sin conexión con el calendario' : '');
 }
@@ -929,6 +972,71 @@ function bindCarousel(){
   }
 }
 
+/* ---------- vista cronograma ---------- */
+var croC = { autoscroll: true };
+var CR_H = 56; // píxeles por hora
+
+function renderCrono(){
+  var d = startOfDay(state.anchor), now = new Date();
+  $('range').innerHTML = '<b>' + DOW_LONG[d.getDay()] + '</b> ' + d.getDate() + ' ' +
+    MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+
+  var open = CONFIG.OPEN_HOUR * 60, close = CONFIG.CLOSE_HOUR * 60;
+  var total = (close - open) / 60 * CR_H;
+  var evs = eventsOfDay(d);
+
+  var html = '<div class="crono" style="height:' + total + 'px">';
+  for (var h = CONFIG.OPEN_HOUR; h < CONFIG.CLOSE_HOUR; h++){
+    html += '<div class="cr-hour"><span class="num">' + pad2(h) + ':00</span></div>';
+  }
+  html += '<div class="cr-end"></div>';
+
+  var drawn = 0;
+  for (var i = 0; i < evs.length; i++){
+    var ev = evs[i];
+    if (ev.allDay) continue;
+    var s = (ev.start - d) / 60000, e2 = (ev.end - d) / 60000;
+    var sM = Math.max(s, open), eM = Math.min(e2, close);
+    if (eM <= open || sM >= close) continue; // fuera del horario del espacio
+    var top = (sM - open) / 60 * CR_H;
+    var hpx = Math.max((eM - sM) / 60 * CR_H - 4, 26);
+    var isNow = ev.start <= now && ev.end > now;
+    var isDone = ev.end <= now;
+    html += '<div class="cr-ev' + (isNow ? ' now' : (isDone ? ' done' : '')) +
+            '" style="top:' + top + 'px;height:' + hpx + 'px">' +
+            '<b class="num">' + hhmm(ev.start) + '&ndash;' + hhmm(ev.end) + '</b> ' + esc(ev.title) +
+            (ev.who ? ' <span class="crw">&middot; ' + esc(ev.who) + '</span>' : '') +
+            '</div>';
+    drawn++;
+  }
+  if (!drawn){
+    html += '<div class="cr-free" style="top:6px">Día libre</div>';
+  }
+
+  if (sameDay(d, now)){
+    var nm = now.getHours() * 60 + now.getMinutes();
+    if (nm >= open && nm <= close){
+      html += '<div class="cr-now" style="top:' + ((nm - open) / 60 * CR_H) + 'px">' +
+              '<b class="num">' + hhmm(now) + '</b></div>';
+    }
+  }
+  html += '</div>';
+
+  var keep = $('view').scrollTop;
+  $('view').innerHTML = html;
+  if (croC.autoscroll){
+    croC.autoscroll = false;
+    if (sameDay(d, now)){
+      var y = (now.getHours() * 60 + now.getMinutes() - open) / 60 * CR_H - 140;
+      $('view').scrollTop = Math.max(y, 0);
+    } else {
+      $('view').scrollTop = 0;
+    }
+  } else {
+    $('view').scrollTop = keep;
+  }
+}
+
 function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -938,11 +1046,18 @@ function esc(s){
    ============================================================ */
 function go(delta){
   if (state.mode === 'day'){ changeDay(delta, 0); return; }
+  if (state.mode === 'crono'){
+    state.anchor = addDays(state.anchor, delta);
+    croC.autoscroll = true;
+    render();
+    load();
+    return;
+  }
   state.anchor = state.mode === 'week' ? addDays(state.anchor, 7 * delta) : addMonths(state.anchor, delta);
   render();
   load();
 }
-function goToday(){ state.anchor = new Date(); render(); load(); }
+function goToday(){ state.anchor = new Date(); croC.autoscroll = true; render(); load(); }
 function setMode(m){ state.mode = m; render(); load(); }
 
 $('prev').onclick = function(){ touch(); go(-1); };
@@ -951,6 +1066,7 @@ $('today').onclick = function(){ touch(); goToday(); };
 $('tabWeek').onclick = function(){ touch(); setMode('week'); };
 $('tabMonth').onclick = function(){ touch(); setMode('month'); };
 $('tabDay').onclick = function(){ touch(); dayC.idx = 0; setMode('day'); };
+$('tabCrono').onclick = function(){ touch(); croC.autoscroll = true; setMode('crono'); };
 
 /* ============================================================
    7. FORMULARIO DE RESERVA
